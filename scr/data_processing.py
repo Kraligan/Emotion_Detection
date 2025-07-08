@@ -5,29 +5,53 @@ import numpy as np
 import cv2
 from utils import get_face_landmarks
 
-# Dowload dataset fer2013: (Uncomment to download)
-# path = kagglehub.dataset_download("msambare/fer2013")
-# print("Path to dataset files:", path)
-
 # Dowload dataset affectnet: (Uncomment to download)
 # path = kagglehub.dataset_download("mstjebashazida/affectnet")
 # print("Path to dataset files:", path)
 
-# Path to train/ and test/ folder with .jpg images
-# data_path = os.path.expanduser("~/.cache/kagglehub/datasets/msambare/fer2013/versions/1") 
-data_path = os.path.expanduser("~/.cache/kagglehub/datasets/mstjebashazida/affectnet/versions/1") # /!\ move ...versions/1/archive(3)/Train/ to .../versions/1/train/
+# Base path (après avoir déplacé les dossiers Train/ et Test/ au bon endroit)
+base_path = os.path.expanduser("~/.cache/kagglehub/datasets/mstjebashazida/affectnet/versions/1")
+train_path = os.path.join(base_path, "train")
+test_path = os.path.join(base_path, "test")
 
-# extract landmarks for each image
-landmarks = []
-for emotion_idx, emotion in enumerate(os.listdir(os.path.join(data_path, "train/"))):
-    for img_name in os.listdir(os.path.join(data_path, f"train/{emotion}")):
-        img_path = os.path.join(data_path, f"train/{emotion}/{img_name}")
+# Configuration
+max_samples_per_class = 2400
+output_path = "data/dataset_Affectnet_balanced.txt"
 
-        img_landmarks = get_face_landmarks(img_path)
-        img_with_label = np.append(img_landmarks, int(emotion_idx)) # We add label at the end of the landmarks table 
-        landmarks.append(img_with_label)
+# Liste des émotions communes aux deux dossiers
+emotions = sorted(list(set(os.listdir(train_path)).intersection(os.listdir(test_path))))
 
-# print(landmarks[:3])
+# Fusionner et trier les fichiers
+def get_all_image_paths(emotion_folder):
+    paths = []
+    for root in [train_path, test_path]:
+        folder = os.path.join(root, emotion_folder)
+        if os.path.isdir(folder):
+            images = sorted(os.listdir(folder))[:2500]  # max pour éviter trop de scans
+            for img in images:
+                paths.append(os.path.join(folder, img))
+    return paths
 
-# save dataset with landmarks and label
-np.savetxt('data/dataset_Affectnet.txt', np.array(landmarks))
+# Extraction
+landmarks_dataset = []
+for emotion_idx, emotion in enumerate(emotions):
+    print(f"Processing emotion: {emotion}")
+    count = 0
+    image_paths = get_all_image_paths(emotion)
+
+    for img_path in image_paths:
+        if count >= max_samples_per_class:
+            break
+        try:
+            img_landmarks = get_face_landmarks(img_path)
+            if img_landmarks is not None and len(img_landmarks) == 1404:
+                data_row = np.append(img_landmarks, int(emotion_idx))
+                landmarks_dataset.append(data_row)
+                count += 1
+        except Exception as e:
+            print(f"Failed: {img_path} — {e}")
+    
+    print(f"{count} samples collected for {emotion}")
+
+# Save
+np.savetxt(output_path, np.array(landmarks_dataset))
