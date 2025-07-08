@@ -1,6 +1,7 @@
 from utils import create_mlp_model, plot_training_curves, plot_confusion_matrix
 import pickle
 import numpy as np
+import joblib
 
 import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -61,6 +62,8 @@ history = model_affectnet.fit(
     ], 
     class_weight=dict(enumerate(class_weights))
 )
+
+joblib.dump(scaler, 'model/affectnet_opti/scaler_affectnet.pkl')
 
 # Plot training curves
 plot_training_curves(history=history)
