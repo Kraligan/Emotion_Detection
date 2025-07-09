@@ -12,6 +12,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import class_weight
 
+from datetime import datetime
+
 
 # Create basic tensorflow model (3 dense layer?)
 # model_fer2013 = create_mlp_model(num_classes=7)
@@ -19,13 +21,13 @@ from sklearn.utils import class_weight
 # print(model_fer2013.summary())
 
 
-model_affectnet = create_mlp_model(num_classes=6)
+model_affectnet = create_mlp_model(num_classes=4)
 optimizer = Adam(learning_rate=0.00001)
 model_affectnet.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 print(model_affectnet.summary())
 
 # load data 
-data = np.loadtxt("data/dataset_Affectnet_balanced.txt")
+data = np.loadtxt("data/dataset_Affectnet_balanced_4classes.txt")
 X = data[:, :-1]  # landmarks (shape: [n_samples, 1404])
 y = data[:, -1]   # labels (shape: [n_samples])
 
@@ -38,9 +40,9 @@ X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.1, random_st
 X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.2, random_state=42, stratify=y_temp)
 
 # Convert to tf.data.Dataset
-batch_size = 32
+batch_size = 16
 
-train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train)).shuffle(500).batch(batch_size)
+train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train)).shuffle(200).batch(batch_size)
 val_ds = tf.data.Dataset.from_tensor_slices((X_val, y_val)).batch(batch_size)
 test_ds = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(batch_size)
 
@@ -51,19 +53,20 @@ class_weights = class_weight.compute_class_weight(
     y=y_train
 )
 
+time = datetime.now().strftime("%Y-%m-%d:%H")
 history = model_affectnet.fit(
     train_ds,
     validation_data = val_ds,
-    epochs=50,
+    epochs=30,
     callbacks = [
-        ModelCheckpoint('model/affectnet_opti/best_model.h5', save_best_only=True),
+        ModelCheckpoint(f'model/{time}/4classes_model.h5', save_best_only=True),
         EarlyStopping(patience=5, monitor='val_loss', verbose=1),
         ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=1e-6, verbose=1)
     ], 
     class_weight=dict(enumerate(class_weights))
 )
 
-joblib.dump(scaler, 'model/affectnet_opti/scaler_affectnet.pkl')
+joblib.dump(scaler, f'model/{time}/4classes_scaler.pkl')
 
 # Plot training curves
 plot_training_curves(history=history)
@@ -73,7 +76,7 @@ test_loss, test_acc = model_affectnet.evaluate(test_ds)
 print(f"Test accuracy: {test_acc:.4f}")
 
 plot_confusion_matrix(model_affectnet, X_test, y_test, class_names=[
-    'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise'
+    'fear', 'happy', 'neutral', 'sad'
 ])
 
 

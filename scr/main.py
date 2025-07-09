@@ -1,14 +1,22 @@
 # import
-from utils import load_model, init_mediapipe
+from utils import load_model
 import cv2
 import numpy as np
 import joblib
+import mediapipe as mp
 
 # load model and init mediapipe facemesh
-model = load_model('model/affectnet2/best_model.h5')
-face_mesh = init_mediapipe()
-emotion_classes = ['disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
-scaler = joblib.load('model/affectnet_opti/scaler_affectnet.pkl')
+model = load_model('model/fine_tune2/affectnet_finetuned_on_self2.h5')
+
+face_mesh = mp.solutions.face_mesh.FaceMesh(
+    static_image_mode=False, 
+    max_num_faces=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
+
+emotion_classes = ['fear', 'happy', 'neutral', 'sad']
+scaler = joblib.load('model/fine_tune2/scaler_finetune.pkl')
 
 # Open webcam
 cap = cv2.VideoCapture(0)
@@ -24,7 +32,7 @@ while True:
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # Detect landmarks
-    results = face_mesh.process(rgb)
+    results = face_mesh.process(frame)
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
@@ -43,6 +51,7 @@ while True:
                 confidence = np.max(prediction)
 
                 # Draw result
+                print("Probas:", dict(zip(emotion_classes, np.round(prediction[0], 2))))
                 cv2.putText(frame, f'{emotion} ({confidence:.2f})', (30, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
@@ -53,6 +62,7 @@ while True:
                     cv2.circle(frame, (x, y), 1, (255, 0, 0), -1)
 
     cv2.imshow('Emotion Detection (landmarks)', frame)
+    # cv2.waitKey(25)
 
     # Break with 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):

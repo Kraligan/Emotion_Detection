@@ -15,8 +15,8 @@ train_path = os.path.join(base_path, "train")
 test_path = os.path.join(base_path, "test")
 
 # Configuration
-max_samples_per_class = 2400
-output_path = "data/dataset_Affectnet_balanced.txt"
+max_samples_per_class = 3000
+output_path = "data/dataset_Affectnet_balanced_4classes.txt"
 
 # Liste des émotions communes aux deux dossiers
 emotions = sorted(list(set(os.listdir(train_path)).intersection(os.listdir(test_path))))
@@ -27,7 +27,7 @@ def get_all_image_paths(emotion_folder):
     for root in [train_path, test_path]:
         folder = os.path.join(root, emotion_folder)
         if os.path.isdir(folder):
-            images = sorted(os.listdir(folder))[:2500]  # max pour éviter trop de scans
+            images = sorted(os.listdir(folder))[:4000]  # max pour éviter trop de scans
             for img in images:
                 paths.append(os.path.join(folder, img))
     return paths

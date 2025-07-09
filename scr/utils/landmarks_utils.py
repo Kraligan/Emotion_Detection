@@ -3,12 +3,8 @@ import cv2
 import mediapipe as mp
 
 # Initialiser MediaPipe Face Mesh une seule fois
-def init_mediapipe():
-    mp_face_mesh = mp.solutions.face_mesh
-    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True)
-    return face_mesh
-
-face_mesh = init_mediapipe()
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True)
 
 # mediapipe extract landmarks function
 def get_face_landmarks(image_path:str):
