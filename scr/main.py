@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import joblib
 import mediapipe as mp
+import imageio
+import os
 
 # load model and init mediapipe facemesh
 model = load_model('model/fine_tune2/affectnet_finetuned_on_self2.h5')
@@ -21,15 +23,18 @@ scaler = joblib.load('model/fine_tune2/scaler_finetune.pkl')
 # Open webcam
 cap = cv2.VideoCapture(0)
 
+frames = []
+MAX_FRAMES = 60 # For recording
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
     # Flip horizontally for natural webcam feel
-    frame = cv2.flip(frame, 1)
+    # frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # Detect landmarks
     results = face_mesh.process(frame)
@@ -53,13 +58,17 @@ while True:
                 # Draw result
                 print("Probas:", dict(zip(emotion_classes, np.round(prediction[0], 2))))
                 cv2.putText(frame, f'{emotion} ({confidence:.2f})', (30, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 4)
 
                 # Draw landmarks on face
                 for lm in face_landmarks.landmark:
                     x = int(lm.x * w)
                     y = int(lm.y * h)
                     cv2.circle(frame, (x, y), 1, (255, 0, 0), -1)
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    if len(frames) < MAX_FRAMES:
+        frames.append(rgb)
 
     cv2.imshow('Emotion Detection (landmarks)', frame)
     # cv2.waitKey(25)
@@ -71,3 +80,7 @@ while True:
 # Release resources
 cap.release()
 cv2.destroyAllWindows()
+
+# os.makedirs("assets", exist_ok=True)
+# imageio.mimsave("assets/emotion_demo.gif", frames, fps=10)
+# print("GIF saved to assets/emotion_demo.gif")
